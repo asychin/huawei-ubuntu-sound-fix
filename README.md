@@ -1,37 +1,28 @@
-# Huawei Matebook 14s / 16s soundcard fix for Ubuntu / Fedora / Arch
+# Huawei Matebook 14s / 16s Soundcard Fix for Ubuntu / Fedora / Arch
+
+This project provides a solution to the audio output issue on Huawei Matebook 14s/16s laptops running Ubuntu, Fedora, or Arch Linux, specifically those with TigerLake architecture.
 
 ## Problem
 
-The headphone and speaker channels are mixed up in the sound card driver for Linux distributions.
-
-When headphones are connected, the system considers that sound should be output from the speakers. When the headphones are off, the system tries to output sound through them.
-
-### Problem details (found [here](https://github.com/thesofproject/linux/issues/3350#issuecomment-1301070327))
-
-Looks like there is some weird hardware design, because from my prospective, the interesting widgets are:
-* 0x01 - Audio Function Group
-* 0x10 - Headphones DAC (really both devices connected here)
-* 0x11 - Speaker DAC
-* 0x16 - Headphones Jack
-* 0x17 - Internal Speaker
-
-And:
-
-* widgets 0x16 and 0x17 simply should be connected to different DACs 0x10 and 0x11, but Internal Speaker 0x17 ignores the connection select command and use the value from Headphones Jack 0x16.
-* Headphone Jack 0x16 is controlled with some weird stuff so it should be enabled with GPIO commands for Audio Group 0x01.
-* Internal Speaker 0x17 is coupled with Headphone Jack 0x16 so it should be explicitly disabled with EAPD/BTL Enable command.
+The headphone and speaker channels are mixed up in the sound card driver. When headphones are connected, the system outputs sound from the speakers, and vice versa. This issue is known to occur on systems with TigerLake architecture.
 
 ## Solution
 
-A daemon has been implemented that monitors the connection/disconnection of headphones and accesses the sound card device in order to switch playback to the right place.
+This project implements a daemon that monitors the headphone jack and automatically switches the audio output between the headphones and speakers using `hda-verb` commands. It also supports PulseAudio and PipeWire for audio output switching.
 
-## Install
+## Installation
 
-```bash
-bash install.sh
-```
+1.  Download the script `huawei-soundcard-headphones-monitor.sh`, `install.sh`, `uninstall.sh` and `huawei-soundcard-headphones-monitor.service`.
+2.  Run the `install.sh` script:
 
-## Daemon control commands
+    ```bash
+    bash install.sh
+    ```
+
+## Usage
+
+The daemon can be controlled using the following systemctl commands:
+
 ```bash
 systemctl status huawei-soundcard-headphones-monitor
 systemctl restart huawei-soundcard-headphones-monitor
@@ -39,27 +30,37 @@ systemctl start huawei-soundcard-headphones-monitor
 systemctl stop huawei-soundcard-headphones-monitor
 ```
 
-## Environment
+## Dependencies
 
-This fix definitely works under Ubuntu 22.04 and Fedora 39 for laptop model Huawei MateBook 14s.
+*   `hda-verb`
+*   `systemctl`
+*   `pacmd` (optional, for PulseAudio)
+*   `pw-cli` (optional, for PipeWire)
+*   `evtest`
 
-```bash
-$ inxi -F
-System:
-  Host: smorenbook Kernel: 5.15.0-78-generic x86_64 bits: 64
-    Desktop: GNOME 42.9 Distro: Ubuntu 22.04.3 LTS (Jammy Jellyfish)
-Machine:
-  Type: Laptop System: HUAWEI product: HKF-WXX v: M1010
-    serial: <superuser required>
-  Mobo: HUAWEI model: HKF-WXX-PCB v: M1010 serial: <superuser required>
-    UEFI: HUAWEI v: 1.06 date: 07/22/2022
+## Supported Systems
+
+This fix has been tested on:
+
+*   Ubuntu 22.04
+*   Fedora 39
+*   Huawei MateBook 14s
+*   Manjaro Linux
+
+Here's the hardware configuration of a tested system:
+
+```
+CPU:
+  Info: quad core model: 11th Gen Intel Core i7-11370H bits: 64 type: MT MCP
+Graphics:
+  Device-1: Intel TigerLake-LP GT2 [Iris Xe Graphics] driver: i915 v: kernel
+Audio:
+  Device-1: Intel Tiger Lake-LP Smart Sound Audio
+    driver: sof-audio-pci-intel-tgl
+Network:
+  Device-1: Intel Wi-Fi 6 AX201 driver: iwlwifi
 ```
 
-## Say thanks
+## Credits
 
-If you want to thank me for this solution, you can subscribe to my [Github profile](https://github.com/Smoren) and also give stars to [my open source projects](https://github.com/Smoren?tab=repositories&q=&type=public&language=&sort=stargazers), e.g.:
-* [MolecuLarva](https://github.com/Smoren/molecular-ts) — Virtual chemistry simultaion. Visualization of the behavior of particles in 2-dimensional and 3-dimensional space for artifical life research.
-* [IterTools TS](https://github.com/Smoren/itertools-ts) — Extended itertools port for TypeScript and JavaScript. Provides a huge set of functions for working with iterable collections (including async ones).
-* [Genetic Search TS](https://github.com/Smoren/genetic-search-ts) — Multiprocessing Genetic Algorithm Implementation for TypeScript.
-* [Schemator PHP](https://github.com/Smoren/schemator-php) — Schematic data mapper for converting nested data structures (any composition of associative arrays, non-associative arrays and objects) according to the given conversion schema.
-* [ArrayView PHP](https://github.com/Smoren/array-view-php) — tools to create array views for easy data manipulation, select elements using Python-like slice notation, enable efficient selection of elements using index lists and boolean masks.
+This solution was originally created by [Smoren](https://github.com/Smoren/huawei-ubuntu-sound-fix).
